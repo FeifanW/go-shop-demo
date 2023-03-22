@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"go-shop-demo/common"
 	"go-shop-demo/datamodels"
+	"strconv"
 )
 
 // 第一步，先开发对应的接口
@@ -62,5 +63,86 @@ func (p *ProductManager) Insert(product *datamodels.Product) (productId int64, e
 		return 0, errStmt
 	}
 	productId, err = result.LastInsertId()
+	return
+}
+
+// 商品删除
+func (p *ProductManager) Delete(productID int64) bool {
+	// 1.判断连接是否存在
+	if err := p.Conn(); err != nil {
+		return false
+	}
+	sql := "delete from product where ID=?"
+	stmt, err := p.mysqlConn.Prepare(sql)
+	if err == nil {
+		return false
+	}
+	_, err = stmt.Exec(productID)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+// 商品的更新
+func (p *ProductManager) Update(product *datamodels.Product) error {
+	// 1.判断连接是否存在
+	if err := p.Conn(); err != nil {
+		return err
+	}
+	// id是数字需要转化成字符串才能和前面的相加
+	sql := "Update product set productName=?,productNum=?,productImage=?,productUrl=? Where ID=" + strconv.FormatInt(product.ID, 10)
+	stmt, err := p.mysqlConn.Prepare(sql)
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec(product.ProductName, product.ProductNum, product.ProductImage, product.ProductUrl)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// 查询单条记录，根据ID查询商品
+func (p *ProductManager) SelectByKey(productID int64) (productResult *datamodels.Product, err error) {
+	// 1.判断连接是否存在
+	if err = p.Conn(); err != nil {
+		return &datamodels.Product{}, err
+	}
+	sql := "Select * from" + p.table + "Where ID=" + strconv.FormatInt(productID, 10)
+	row, errRow := p.mysqlConn.Query(sql)
+	defer row.Close()
+	if errRow != nil {
+		return &datamodels.Product{}, errRow
+	}
+	result := common.GetResultRow(row)
+	if len(result) == 0 {
+		return &datamodels.Product{}, err
+	}
+	common.DataToStructByTagSql(result, productResult)
+	return
+}
+
+// 查询所有记录，获取所有商品
+func (p *ProductManager) SelectAll() (productArray []*datamodels.Product, err error) {
+	// 1.判断连接是否存在
+	if err := p.Conn(); err != nil {
+		return nil, err
+	}
+	sql := "Select * from " + p.table
+	rows, err := p.mysqlConn.Query(sql)
+	defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	result := common.GetResultRows(rows)
+	if len(result) == 0 {
+		return nil, nil
+	}
+	for _, v := range result {
+		product := &datamodels.Product{}
+		common.DataToStructByTagSql(v, product)
+		productArray = append(productArray, product)
+	}
 	return
 }
