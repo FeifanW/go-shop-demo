@@ -8,7 +8,7 @@ import (
 type IProductService interface {
 	GetProductByID(int64) (*datamodels.Product, error)
 	GetAllProduct() ([]*datamodels.Product, error)
-	DeleteProductById(int64) bool
+	DeleteProductByID(int64) bool
 	InsertProduct(product *datamodels.Product) (int64, error)
 	UpdateProduct(product *datamodels.Product) error
 }
@@ -23,7 +23,6 @@ func NewProductService(repository repositories.IProduct) IProductService {
 }
 
 func (p *ProductService) GetProductByID(productID int64) (*datamodels.Product, error) {
-	// 这里再调用一次并不是多此一举，因为product_repository.go里面定义的是底层的操作，而service里面可能还会有其他复杂的业务逻辑
 	return p.productRepository.SelectByKey(productID)
 }
 
@@ -31,7 +30,7 @@ func (p *ProductService) GetAllProduct() ([]*datamodels.Product, error) {
 	return p.productRepository.SelectAll()
 }
 
-func (p *ProductService) DeleteProductById(productID int64) bool {
+func (p *ProductService) DeleteProductByID(productID int64) bool {
 	return p.productRepository.Delete(productID)
 }
 

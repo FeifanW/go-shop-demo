@@ -7,12 +7,12 @@ import (
 	"time"
 )
 
-// 根据结构体中sql标签映射数据到结构体中并且转换类型
+//根据结构体中sql标签映射数据到结构体中并且转换类型
 func DataToStructByTagSql(data map[string]string, obj interface{}) {
 	objValue := reflect.ValueOf(obj).Elem()
 	for i := 0; i < objValue.NumField(); i++ {
 		//获取sql对应的值
-		value := data[objValue.Type().Field(i).Tag.Get("sql")] // 获取Tag里面sql对应的值
+		value := data[objValue.Type().Field(i).Tag.Get("sql")]
 		//获取对应字段的名称
 		name := objValue.Type().Field(i).Name
 		//获取对应字段类型
@@ -32,7 +32,7 @@ func DataToStructByTagSql(data map[string]string, obj interface{}) {
 	}
 }
 
-// 类型转换
+//类型转换
 func TypeConversion(value string, ntype string) (reflect.Value, error) {
 	if ntype == "string" {
 		return reflect.ValueOf(value), nil

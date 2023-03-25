@@ -14,12 +14,11 @@ type ProductController struct {
 	ProductService services.IProductService
 }
 
-// 返回所有视图，获取到商品再展示
 func (p *ProductController) GetAll() mvc.View {
 	productArray, _ := p.ProductService.GetAllProduct()
 	return mvc.View{
 		Name: "product/view.html",
-		Data: iris.Map{ // 向模板里面传参数
+		Data: iris.Map{
 			"productArray": productArray,
 		},
 	}
@@ -85,7 +84,7 @@ func (p *ProductController) GetDelete() {
 	if err != nil {
 		p.Ctx.Application().Logger().Debug(err)
 	}
-	isOk := p.ProductService.DeleteProductById(id)
+	isOk := p.ProductService.DeleteProductByID(id)
 	if isOk {
 		p.Ctx.Application().Logger().Debug("删除商品成功，ID为：" + idString)
 	} else {

@@ -9,9 +9,8 @@ import (
 
 // 第一步，先开发对应的接口
 // 第二步，实现定义的接口
-
 type IProduct interface {
-	// 连接数据
+	//连接数据
 	Conn() error
 	Insert(*datamodels.Product) (int64, error)
 	Delete(int64) bool
@@ -20,20 +19,19 @@ type IProduct interface {
 	SelectAll() ([]*datamodels.Product, error)
 }
 
-// 实现接口
 type ProductManager struct {
 	table     string
 	mysqlConn *sql.DB
 }
 
 func NewProductManager(table string, db *sql.DB) IProduct {
-	return &ProductManager{table, db}
+	return &ProductManager{table: table, mysqlConn: db}
 }
 
 // 数据连接
 func (p *ProductManager) Conn() (err error) {
 	if p.mysqlConn == nil {
-		mysql, err := common.NewMysqlConn() // 创建连接
+		mysql, err := common.NewMysqlConn()
 		if err != nil {
 			return err
 		}
@@ -47,37 +45,36 @@ func (p *ProductManager) Conn() (err error) {
 
 // 插入
 func (p *ProductManager) Insert(product *datamodels.Product) (productId int64, err error) {
-	// 1.判断连接是否存在
+	//1.判断连接是否存在
 	if err = p.Conn(); err != nil {
 		return
 	}
-	// 2.准备sql
+	//2.准备sql
 	sql := "INSERT product SET productName=?,productNum=?,productImage=?,productUrl=?"
 	stmt, errSql := p.mysqlConn.Prepare(sql)
 	if errSql != nil {
 		return 0, errSql
 	}
-	// 3.传入参数
+	//3.传入参数
 	result, errStmt := stmt.Exec(product.ProductName, product.ProductNum, product.ProductImage, product.ProductUrl)
 	if errStmt != nil {
 		return 0, errStmt
 	}
-	productId, err = result.LastInsertId()
-	return
+	return result.LastInsertId()
 }
 
-// 商品删除
+// 商品的删除
 func (p *ProductManager) Delete(productID int64) bool {
-	// 1.判断连接是否存在
+	//1.判断连接是否存在
 	if err := p.Conn(); err != nil {
 		return false
 	}
 	sql := "delete from product where ID=?"
 	stmt, err := p.mysqlConn.Prepare(sql)
-	if err == nil {
+	if err != nil {
 		return false
 	}
-	_, err = stmt.Exec(productID)
+	_, err = stmt.Exec(strconv.FormatInt(productID, 10))
 	if err != nil {
 		return false
 	}
@@ -86,16 +83,18 @@ func (p *ProductManager) Delete(productID int64) bool {
 
 // 商品的更新
 func (p *ProductManager) Update(product *datamodels.Product) error {
-	// 1.判断连接是否存在
+	//1.判断连接是否存在
 	if err := p.Conn(); err != nil {
 		return err
 	}
-	// id是数字需要转化成字符串才能和前面的相加
-	sql := "Update product set productName=?,productNum=?,productImage=?,productUrl=? Where ID=" + strconv.FormatInt(product.ID, 10)
+
+	sql := "Update product set productName=?,productNum=?,productImage=?,productUrl=? where ID=" + strconv.FormatInt(product.ID, 10)
+
 	stmt, err := p.mysqlConn.Prepare(sql)
 	if err != nil {
 		return err
 	}
+
 	_, err = stmt.Exec(product.ProductName, product.ProductNum, product.ProductImage, product.ProductUrl)
 	if err != nil {
 		return err
@@ -103,13 +102,13 @@ func (p *ProductManager) Update(product *datamodels.Product) error {
 	return nil
 }
 
-// 查询单条记录，根据ID查询商品
+// 根据商品ID查询商品
 func (p *ProductManager) SelectByKey(productID int64) (productResult *datamodels.Product, err error) {
-	// 1.判断连接是否存在
+	//1.判断连接是否存在
 	if err = p.Conn(); err != nil {
 		return &datamodels.Product{}, err
 	}
-	sql := "Select * from" + p.table + "Where ID=" + strconv.FormatInt(productID, 10)
+	sql := "Select * from " + p.table + " where ID =" + strconv.FormatInt(productID, 10)
 	row, errRow := p.mysqlConn.Query(sql)
 	defer row.Close()
 	if errRow != nil {
@@ -117,15 +116,17 @@ func (p *ProductManager) SelectByKey(productID int64) (productResult *datamodels
 	}
 	result := common.GetResultRow(row)
 	if len(result) == 0 {
-		return &datamodels.Product{}, err
+		return &datamodels.Product{}, nil
 	}
+	productResult = &datamodels.Product{}
 	common.DataToStructByTagSql(result, productResult)
 	return
+
 }
 
-// 查询所有记录，获取所有商品
-func (p *ProductManager) SelectAll() (productArray []*datamodels.Product, err error) {
-	// 1.判断连接是否存在
+// 获取所有商品
+func (p *ProductManager) SelectAll() (productArray []*datamodels.Product, errProduct error) {
+	//1.判断连接是否存在
 	if err := p.Conn(); err != nil {
 		return nil, err
 	}
@@ -135,10 +136,12 @@ func (p *ProductManager) SelectAll() (productArray []*datamodels.Product, err er
 	if err != nil {
 		return nil, err
 	}
+
 	result := common.GetResultRows(rows)
 	if len(result) == 0 {
 		return nil, nil
 	}
+
 	for _, v := range result {
 		product := &datamodels.Product{}
 		common.DataToStructByTagSql(v, product)

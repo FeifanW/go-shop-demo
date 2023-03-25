@@ -7,7 +7,6 @@ import (
 
 // 创建mysql 连接
 func NewMysqlConn() (db *sql.DB, err error) {
-	// 第一个数据库账号，第二个是数据库密码
 	db, err = sql.Open("mysql", "root:imooc@tcp(127.0.0.1:3306)/imooc?charset=utf8")
 	return
 }
