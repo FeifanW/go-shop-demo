@@ -1,0 +1,39 @@
+package encrypt
+
+import (
+	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
+)
+
+// 高级加密标准
+
+// 16,24,32位字符串的话，分别对应加密标准AES-128,AES-192,AES-256 加密方法
+// key不能泄露
+var Pwdkey = []byte("DIS**#KKKDJJSKDI")
+
+// PKCS7 填充模式
+func PKCS7Padding(ciphertext []byte, blockSize int) []byte {
+	padding := blockSize - len(ciphertext)%blockSize
+	// Repeat()函数的功能是把切片[]byte{byte(padding)}复制padding个，然后合并成新的字节切片返回
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(ciphertext, padtext...)
+}
+
+func AesEcrypt(origData []byte, key []byte) ([]byte, error) {
+	// 创建加密算法实例
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+	// 获取块的大小
+	blockSize := block.BlockSize()
+	// 对数据进行填充，让数据长度满足需求
+	origData = PKCS7Padding(origData, blockSize)
+	// 采用AES加密方法中CBC加密模式
+	blocMode := cipher.NewCBCDecrypter(block, key[:blockSize])
+	crypted := make([]byte, len(origData))
+	// 执行加密
+	blocMode.CryptBlocks(crypted, origData)
+	return crypted, nil
+}

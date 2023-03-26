@@ -49,16 +49,19 @@ func (c *UserController) GetLogin() mvc.View {
 }
 
 func (c *UserController) PostLogin() mvc.Response {
+	// 1.获取用户提交的表单信息
 	var (
 		userName = c.Ctx.FormValue("userName")
 		password = c.Ctx.FormValue("password")
 	)
+	// 2.验证账号密码正确
 	user, isOk := c.Service.IsPwdSuccess(userName, password)
 	if !isOk {
 		return mvc.Response{
 			Path: "/user/login",
 		}
 	}
+	// 3.写入用户ID到cookie中
 	tool.GlobalCookie(c.Ctx, "uid", strconv.FormatInt(user.ID, 10)) // 设置session
 	c.Session.Set("userID", strconv.FormatInt(user.ID, 10))
 	// 跳转页面，登录成功之后跳转产品页面
