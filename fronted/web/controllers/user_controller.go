@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"fmt"
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/mvc"
 	"github.com/kataras/iris/v12/sessions"
 	"go-shop-demo/datamodels"
+	"go-shop-demo/encrypt"
 	"go-shop-demo/services"
 	"go-shop-demo/tool"
 	"strconv"
@@ -63,7 +65,13 @@ func (c *UserController) PostLogin() mvc.Response {
 	}
 	// 3.写入用户ID到cookie中
 	tool.GlobalCookie(c.Ctx, "uid", strconv.FormatInt(user.ID, 10)) // 设置session
-	c.Session.Set("userID", strconv.FormatInt(user.ID, 10))
+	uidByte := []byte(strconv.FormatInt(user.ID, 10))
+	uidString, err := encrypt.EnPwdCode(uidByte)
+	if err != nil {
+		fmt.Println(err)
+	}
+	// 写入用户浏览器
+	tool.GlobalCookie(c.Ctx, "sign", uidString)
 	// 跳转页面，登录成功之后跳转产品页面
 	return mvc.Response{
 		Path: "/product/",

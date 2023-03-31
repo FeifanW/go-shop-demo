@@ -4,12 +4,11 @@ import (
 	"context"
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/mvc"
-	"github.com/kataras/iris/v12/sessions"
 	"go-shop-demo/common"
 	"go-shop-demo/fronted/web/controllers"
+	"go-shop-demo/rabbitmq"
 	"go-shop-demo/repositories"
 	"go-shop-demo/services"
-	"time"
 )
 
 func main() {
@@ -35,18 +34,21 @@ func main() {
 	if err != nil {
 
 	}
-	sess := sessions.New(sessions.Config{
-		Cookie:  "AdminCookie",
-		Expires: 600 * time.Minute, // 过期时间
-	})
+	//sess := sessions.New(sessions.Config{
+	//	Cookie:  "AdminCookie",
+	//	Expires: 600 * time.Minute, // 过期时间
+	//})
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	user := repositories.NewUserRepository("user", db)
 	userService := services.NewService(user)
 	userPro := mvc.New(app.Party("/user"))
-	userPro.Register(userService, ctx, sess.Start)
+	userPro.Register(userService, ctx)
+	//userPro.Register(userService, ctx, sess.Start)
 	userPro.Handle(new(controllers.UserController))
+
+	rabbitmq := rabbitmq.NewRabbitMQSimple("imoocProduct")
 
 	// 注册product控制器
 	product := repositories.NewProductManager("product", db)
@@ -55,8 +57,9 @@ func main() {
 	orderService := services.NewOrderService(order)
 	proProduct := app.Party("/product")
 	pro := mvc.New(proProduct)
-	proProduct.Use()                                       // 使用中间件
-	pro.Register(productService, orderService, sess.Start) // 注册到控制器
+	proProduct.Use()                                     // 使用中间件
+	pro.Register(productService, orderService, rabbitmq) // 注册到控制器
+	//pro.Register(productService, orderService, sess.Start) // 注册到控制器
 	pro.Handle(new(controllers.ProductController))
 
 	app.Run(

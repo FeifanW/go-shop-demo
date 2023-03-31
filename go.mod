@@ -5,6 +5,8 @@ go 1.19
 require (
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/kataras/iris/v12 v12.2.1-0.20230320161635-3a00e785ea46
+	github.com/streadway/amqp v1.0.0
+	golang.org/x/crypto v0.7.0
 )
 
 require (
@@ -54,7 +56,6 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/yosssi/ace v0.0.5 // indirect
-	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/text v0.8.0 // indirect
