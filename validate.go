@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strconv"
 	"sync"
+	"time"
 )
 
 // 设置集群地址，最好内外IP
@@ -36,15 +37,18 @@ var rabbitMqValidate *rabbitmq.RabbitMQ
 // 用来存放控制信息
 type AccessControl struct {
 	// 用来存放用户想要存放的信息
-	sourcesArray map[int]interface{}
+	sourcesArray map[int]time.Time
 	*sync.RWMutex
 }
 
+// 服务器间隔时间，单位秒
+var interval = 20
+
 // 创建全局变量
-var accessControl = &AccessControl{sourcesArray: make(map[int]interface{})}
+var accessControl = &AccessControl{sourcesArray: make(map[int]time.Time)}
 
 // 获取制定的数据
-func (m *AccessControl) GetNewRecord(uid int) interface{} {
+func (m *AccessControl) GetNewRecord(uid int) time.Time {
 	m.RWMutex.RLock()
 	defer m.RWMutex.Unlock()
 	data := m.sourcesArray[uid]
@@ -54,8 +58,31 @@ func (m *AccessControl) GetNewRecord(uid int) interface{} {
 // 设置记录
 func (m *AccessControl) SetNewRecord(uid int) {
 	m.RWMutex.Lock()
-	m.sourcesArray[uid] = "hello world"
+	m.sourcesArray[uid] = time.Now()
 	m.RWMutex.Unlock()
+}
+
+// 黑名单结构体
+type BlackList struct {
+	listArray map[int]bool
+	sync.RWMutex
+}
+
+var blackList = &BlackList{listArray: make(map[int]bool)}
+
+// 获取黑名单
+func (m *BlackList) GetBlackListByID(uid int) bool {
+	m.RLock()
+	defer m.RLock()
+	return m.listArray[uid]
+}
+
+// 添加黑名单
+func (m *BlackList) SetBlackListByID(uid int) bool {
+	m.Lock()
+	defer m.Unlock()
+	m.listArray[uid] = true
+	return true
 }
 
 func (m *AccessControl) GetDistributedRight(req *http.Request) bool {
@@ -85,12 +112,24 @@ func (m *AccessControl) GetDataFromMap(uid string) (isOK bool) {
 	if err != nil {
 		return false
 	}
-	data := m.GetNewRecord(uidInt)
-	// 执行判断逻辑
-	if data != nil {
-		return true
+
+	// 添加黑名单
+	if blackList.GetBlackListByID(uidInt) {
+		// 判断是否被添加到黑名单中
+		return false
 	}
-	return
+
+	// 获取记录
+	dataRecord := m.GetNewRecord(uidInt)
+	// 执行判断逻辑
+	if !dataRecord.IsZero() {
+		// 业务判断，是否在指定直接之后
+		if dataRecord.Add(time.Duration(interval) * time.Second).After(time.Now()) {
+			return false
+		}
+	}
+	m.SetNewRecord(uidInt)
+	return true
 }
 
 // 获取其他节点处理结果
